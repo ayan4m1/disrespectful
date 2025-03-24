@@ -1,11 +1,14 @@
 import { resolve } from 'path';
+import autoprefixer from 'autoprefixer';
 import HtmlPlugin from 'html-webpack-plugin';
 import ESLintPlugin from 'eslint-webpack-plugin';
 import TerserPlugin from 'terser-webpack-plugin';
 import CnameWebpackPlugin from 'cname-webpack-plugin';
 import StylelintPlugin from 'stylelint-webpack-plugin';
+import postcssFlexbugsFixes from 'postcss-flexbugs-fixes';
 import MiniCSSExtractPlugin from 'mini-css-extract-plugin';
 import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
+import ImageMinimizerPlugin from 'image-minimizer-webpack-plugin';
 import { CleanWebpackPlugin as CleanPlugin } from 'clean-webpack-plugin';
 
 const dev = process.env.NODE_ENV === 'development';
@@ -34,11 +37,11 @@ const plugins = [
 
 export default {
   mode: dev ? 'development' : 'production',
-  devtool: dev ? 'eval-cheap-module-source-map' : 'cheap-module-source-map',
+  devtool: dev ? 'eval-cheap-module-source-map' : false,
   entry: './src/index.js',
   devServer: {
-    compress: dev,
-    hot: dev,
+    hot: true,
+    open: true,
     port: 9000
   },
   module: {
@@ -58,15 +61,19 @@ export default {
             options: {
               postcssOptions: {
                 ident: 'postcss',
-                plugins: [
-                  require('autoprefixer'),
-                  require('postcss-flexbugs-fixes')
-                ],
+                plugins: [autoprefixer, postcssFlexbugsFixes],
                 sourceMap: dev
               }
             }
           },
-          'sass-loader'
+          {
+            loader: 'sass-loader',
+            options: {
+              sassOptions: {
+                quietDeps: true
+              }
+            }
+          }
         ]
       },
       {
@@ -80,7 +87,7 @@ export default {
       },
       {
         test: /\.(gif|png|jpe?g|svg)$/i,
-        use: ['file-loader', 'image-webpack-loader']
+        type: 'asset'
       }
     ]
   },
@@ -100,12 +107,13 @@ export default {
   },
   optimization: {
     minimizer: [
-      new TerserPlugin({
-        terserOptions: {
-          ecma: 12
+      new TerserPlugin(),
+      new CssMinimizerPlugin(),
+      new ImageMinimizerPlugin({
+        minimizer: {
+          implementation: ImageMinimizerPlugin.imageminMinify
         }
-      }),
-      new CssMinimizerPlugin()
+      })
     ]
   }
 };
